@@ -62,13 +62,10 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
   (function(){
-    // ★ここを置換（まずはSTGのLIFFとGAS /exec）
-    const LIFF_ID      = "2007979122-jkyZVlN1";                                // 例: 2007xxxxxxxx-ABCDEFGH
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw2EJyCBhZ3XCjnbXX6D0TcgU0Sx-WM72JxLqrpF9ZD60xWGvokDbujv5S5dHyQgtmQ/exec"; // 必ず /exec
-
-    // デバッグ用： ?liff=ID で一時上書き可能
-    const qp = new URL(location.href).searchParams;
-    const LIFF_ID_USE = qp.get("liff") || LIFF_ID;
+    // ==== 固定値（差し替え済み） ====
+    const LIFF_ID      = "2007979122-jkyZVlN1";
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw2EJyCBhZ3XCjnbXX6D0TcgU0Sx-WM72JxLqrpF9ZD60xWGvokDbujv5S5dHyQgtmQ/exec";
+    // ===============================
 
     const form = document.getElementById("f");
     const btn  = document.getElementById("submitBtn");
@@ -85,7 +82,7 @@
     }
 
     async function ensureLogin(){
-      await liff.init({ liffId: LIFF_ID_USE });
+      await liff.init({ liffId: LIFF_ID });
       if(!liff.isLoggedIn()){ liff.login(); return false; }
       try{ await liff.getProfile(); return true; }
       catch(e){ try{ liff.logout(); }catch(_){} liff.login(); return false; }
@@ -104,11 +101,11 @@
       const err = validate(payload); if(err){ show(err); return; }
 
       btn.disabled = true; btn.textContent = "送信中…";
+
       try{
         const prof = await liff.getProfile();
         const meta = { userId: prof.userId, ts: Date.now() };
 
-        // CORS回避：ヘッダ無し simple request
         const res = await fetch(GAS_ENDPOINT, {
           method: "POST",
           body: JSON.stringify({ action:"submit-form", meta, payload })
@@ -116,12 +113,13 @@
 
         const j = await res.json().catch(()=>null);
         if(res.ok && j && j.ok){
-          show("送信しました。診断結果をLINEでお送りしました。");
-          setTimeout(()=> liff.closeWindow?.(), 600);
-        }else{
+          show("送信しました。結果をLINEで送信しました。");
+          setTimeout(()=>liff.closeWindow?.(), 600);
+        } else {
           show("送信に失敗しました。時間をおいて再度お試しください。");
           btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
         }
+
       }catch(e){
         console.error("送信エラー", e);
         show("送信に失敗しました。");
