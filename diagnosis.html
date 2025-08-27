@@ -34,17 +34,16 @@
           <option>配車計画が属人的で非効率</option>
           <option>勤怠・労務管理が手作業で集計に時間がかかる</option>
           <option>請求書作成が手作業でミスや負担が多い</option>
-          <option>その他</option>
         </select>
 
-        <label for="monthly_hours">月間合計作業時間（時間）</label>
+        <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は、おおよそ何時間ですか？</label>
         <input id="monthly_hours" name="monthly_hours" class="field" type="number" min="1" max="20000" step="1" placeholder="例：8000" required />
-        <p class="help" style="margin-top:6px">※複数人の合計でOK（例：40人×200h＝8000h）</p>
+        <p class="help" style="margin-top:6px">※複数の担当者・チームの合計時間で入力してください（例：40人×200h＝8000h）</p>
 
-        <label for="hourly_wage">平均時給（円）</label>
+        <label for="hourly_wage">その業務に関わる方の「平均時給」は、おおよそ何円ですか？</label>
         <input id="hourly_wage" name="hourly_wage" class="field" type="number" min="1" max="100000" step="1" placeholder="例：2000" required />
 
-        <label for="reduction_rate">削減できると期待する割合</label>
+        <label for="reduction_rate">AI導入によって、Q2の月間作業時間をどのくらい削減できると期待しますか？</label>
         <select id="reduction_rate" name="reduction_rate" class="field" required>
           <option value="" selected disabled>選択してください</option>
           <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
@@ -113,8 +112,8 @@
 
         const j = await res.json().catch(()=>null);
         if(res.ok && j && j.ok){
-          show("送信しました。結果をLINEで送信しました。");
-          setTimeout(()=>liff.closeWindow?.(), 600);
+          show("結果をLINEで送信しました。");
+          setTimeout(()=>liff.closeWindow?.(), 0);
         } else {
           show("送信に失敗しました。時間をおいて再度お試しください。");
           btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
