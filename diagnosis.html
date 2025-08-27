@@ -103,7 +103,13 @@
 
       try{
         const prof = await liff.getProfile();
-        const meta = { userId: prof.userId, ts: Date.now() };
+        const meta = {
+        userId: prof.userId,
+        displayName: prof.displayName || "",
+        ts: Date.now(),
+        ua: navigator.userAgent,
+        ctxType: (typeof liff.getContext==="function" && liff.getContext()) ? liff.getContext().type : ""
+        };
 
         const res = await fetch(GAS_ENDPOINT, {
           method: "POST",
