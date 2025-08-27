@@ -2,7 +2,7 @@
 export async function onRequestPost(context) {
   try {
     // ← ここに「いま使っている最新の GAS /exec」をコピペ
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxcJ1nABE1MGgsyWay44s0mzaiQy5BSwTWVeVd9vZK_rfY3fPh0lK-Hjg8ZTuYpBZ06/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxZWU1hJAI6RA8RepbmDzJj4qqNyGmb3S5wYJztx_JC-pmmj1xsSZNTNPZe8dLqMxka/exec";
 
     // クライアントのJSONをそのままGASへ中継（ヘッダ不要 → プリフライト回避）
     const body = await context.request.text();
