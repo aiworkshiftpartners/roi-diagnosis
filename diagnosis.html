@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ROIクイック診断（LINE限定）</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;background:#fafafa;color:#111;line-height:1.8}
+    .wrap{min-height:100%;display:grid;place-items:start center;padding:24px}
+    .card{width:100%;max-width:560px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+    h1{margin:0 0 14px;font-weight:800;font-size:clamp(26px,6vw,36px)}
+    .help{font-size:13px;color:#666;margin:0 0 18px}
+    label{display:block;margin:18px 0 6px;font-weight:600}
+    .field{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;background:#fff}
+    .field:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+    .btn{width:100%;padding:14px;margin-top:22px;border:none;border-radius:10px;background:#1a2e44;color:#fff;font-size:16px;font-weight:800;cursor:pointer}
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
+    #msg{margin-top:12px;font-size:13px;color:#666;min-height:1.2em}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>ROIクイック診断</h1>
+      <p class="help">入力後、結果は<strong>LINEのトーク</strong>に自動送信されます。</p>
+
+      <form id="f" novalidate>
+        <label for="target">どの業務の課題解決を最も期待しますか？</label>
+        <select id="target" name="target" class="field" required>
+          <option value="" selected disabled>選択してください</option>
+          <option>配車計画が属人的で非効率</option>
+          <option>勤怠・労務管理が手作業で集計に時間がかかる</option>
+          <option>請求書作成が手作業でミスや負担が多い</option>
+          <option>その他</option>
+        </select>
+
+        <label for="monthly_hours">月間合計作業時間（時間）</label>
+        <input id="monthly_hours" name="monthly_hours" class="field" type="number" min="1" max="20000" step="1" placeholder="例：8000" required />
+        <p class="help" style="margin-top:6px">※複数人の合計でOK（例：40人×200h＝8000h）</p>
+
+        <label for="hourly_wage">平均時給（円）</label>
+        <input id="hourly_wage" name="hourly_wage" class="field" type="number" min="1" max="100000" step="1" placeholder="例：2000" required />
+
+        <label for="reduction_rate">削減できると期待する割合</label>
+        <select id="reduction_rate" name="reduction_rate" class="field" required>
+          <option value="" selected disabled>選択してください</option>
+          <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
+          <option value="40">40%</option><option value="50">50%</option><option value="60">60%</option>
+          <option value="70">70%</option><option value="80">80%</option><option value="90">90%</option>
+        </select>
+
+        <button type="submit" id="submitBtn" class="btn">診断してLINEに結果を受け取る</button>
+      </form>
+
+      <p id="msg" class="help"></p>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+  (function(){
+    // ★ここを置換（まずはSTGのLIFFとGAS /exec）
+    const LIFF_ID      = "YOUR_LIFF_ID";                                // 例: 2007xxxxxxxx-ABCDEFGH
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/XXXX/exec"; // 必ず /exec
+
+    // デバッグ用： ?liff=ID で一時上書き可能
+    const qp = new URL(location.href).searchParams;
+    const LIFF_ID_USE = qp.get("liff") || LIFF_ID;
+
+    const form = document.getElementById("f");
+    const btn  = document.getElementById("submitBtn");
+    const msg  = document.getElementById("msg");
+    const show = (m)=>{ msg.textContent = m || ""; };
+
+    function toN(v){ return Number(v); }
+    function validate(p){
+      if(!p.target) return "対象業務を選択してください。";
+      const h = toN(p.monthly_hours); if(!(Number.isFinite(h)&&h>=1&&h<=20000)) return "作業時間は1〜20,000で入力してください。";
+      const w = toN(p.hourly_wage);   if(!(Number.isFinite(w)&&w>=1&&w<=100000)) return "時給は1〜100,000で入力してください。";
+      const r = toN(p.reduction_rate);if(!(Number.isFinite(r)&&r>=1&&r<=90))   return "削減率は1〜90%で選択してください。";
+      return null;
+    }
+
+    async function ensureLogin(){
+      await liff.init({ liffId: LIFF_ID_USE });
+      if(!liff.isLoggedIn()){ liff.login(); return false; }
+      try{ await liff.getProfile(); return true; }
+      catch(e){ try{ liff.logout(); }catch(_){} liff.login(); return false; }
+    }
+
+    (async()=>{ try{ await ensureLogin(); }catch(e){ console.error(e); } })();
+
+    form.addEventListener("submit", onSubmit);
+
+    async function onSubmit(ev){
+      ev.preventDefault(); show("");
+      const ok = await ensureLogin(); if(!ok) return;
+
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+      const err = validate(payload); if(err){ show(err); return; }
+
+      btn.disabled = true; btn.textContent = "送信中…";
+      try{
+        const prof = await liff.getProfile();
+        const meta = { userId: prof.userId, ts: Date.now() };
+
+        // CORS回避：ヘッダ無し simple request
+        const res = await fetch(GAS_ENDPOINT, {
+          method: "POST",
+          body: JSON.stringify({ action:"submit-form", meta, payload })
+        });
+
+        const j = await res.json().catch(()=>null);
+        if(res.ok && j && j.ok){
+          show("送信しました。診断結果をLINEでお送りしました。");
+          setTimeout(()=> liff.closeWindow?.(), 600);
+        }else{
+          show("送信に失敗しました。時間をおいて再度お試しください。");
+          btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
+        }
+      }catch(e){
+        console.error("送信エラー", e);
+        show("送信に失敗しました。");
+        btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
+      }
+    }
+  })();
+  </script>
+</body>
+</html>
