@@ -64,7 +64,7 @@
   (function(){
     // ==== 固定値（差し替え済み） ====
     const LIFF_ID      = "2007979122-jkyZVlN1";
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw2EJyCBhZ3XCjnbXX6D0TcgU0Sx-WM72JxLqrpF9ZD60xWGvokDbujv5S5dHyQgtmQ/exec";
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyGloXqVM0A2fzRV-RiLRKg7lDxOzI_mcYSd56YIIDsHrnjQGXZePH5DIMkaddoL7IV/exec";
     // ===============================
 
     const form = document.getElementById("f");
@@ -122,7 +122,7 @@
 
       }catch(e){
         console.error("送信エラー", e);
-        // show("送信に失敗しました。");
+        show("送信に失敗しました。");
         btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
       }
     }
