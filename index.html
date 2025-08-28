@@ -43,7 +43,7 @@
           例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong>
         </p>
         <input id="monthly_hours" name="monthly_hours" class="field" type="number"
-              min="1" max="20000" step="1" placeholder="例：200" required />
+               min="1" max="20000" step="1" placeholder="例：200" required />
         <div class="error-msg" data-for="monthly_hours"></div>
 
         <label for="hourly_wage">その業務に関わる方の「平均時給」何円ですか？</label>
@@ -67,19 +67,20 @@
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
   <script>
   (function(){
     const LIFF_ID      = "2007979122-Y76xKzkV";
-    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ←正しいURLに固定
+    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ルートに統一
     const GAS_ENDPOINT = "/submit";
 
-    // --- オリジン統一（pages.devで開かれていたら独自ドメインに移動） ---
+    // --- 1) オリジン統一：pages.dev 等で開かれたら独自ドメインへ移動（PKCE安定化） ---
     (function enforceCanonical(){
-      const here = location.origin + location.pathname;
-      const norm = (s)=>s.replace(/\/+$/,'');
-      if (norm(here) !== norm(CANON_URL)) {
-        location.replace(CANON_URL);
+      const here = location.origin;
+      if (here !== CANON_URL) {
+        // ルートに寄せる（クエリは引き継がない：PKCE安定のため）
+        if ((location.origin + location.pathname) !== CANON_URL + "/") {
+          location.replace(CANON_URL);
+        }
       }
     })();
 
@@ -91,18 +92,15 @@
       document.querySelectorAll(".field").forEach(el=>el.classList.remove("error"));
       document.querySelectorAll(".error-msg").forEach(el=>el.textContent="");
     }
-
     function setError(fieldId, message){
       const field = document.getElementById(fieldId);
       field.classList.add("error");
       const em = document.querySelector(`.error-msg[data-for="${fieldId}"]`);
       if(em) em.textContent = message;
     }
-
     function validate(p){
       let valid = true;
       clearErrors();
-
       if(!p.target){ setError("target","対象業務を選択してください。"); valid=false; }
       const h = Number(p.monthly_hours);
       if(!(Number.isFinite(h)&&h>=1&&h<=20000)){ setError("monthly_hours","作業時間は1〜20,000で入力してください。"); valid=false; }
@@ -110,22 +108,29 @@
       if(!(Number.isFinite(w)&&w>=1&&w<=100000)){ setError("hourly_wage","時給は1〜100,000で入力してください。"); valid=false; }
       const r = Number(p.reduction_rate);
       if(!(Number.isFinite(r)&&r>=1&&r<=90)){ setError("reduction_rate","削減率は1〜90%で選択してください。"); valid=false; }
-
       return valid;
     }
 
+    // --- 2) LIFF起動：LIFF内/外で挙動を分岐（外部ならLIFF URLへ誘導） ---
     async function ensureLogin(){
       await liff.init({ liffId: LIFF_ID });
-      if (liff.isLoggedIn()) {
-        try { await liff.getProfile(); return true; }
-        catch { liff.login({ redirectUri: CANON_URL }); return false; }
+
+      if (!liff.isInClient()) {
+        // 外部ブラウザ → 必ずLIFFで開かせる
+        location.replace(`https://liff.line.me/${LIFF_ID}`);
+        return false;
       }
-      liff.login({ redirectUri: CANON_URL });
-      return false;
+
+      // LIFF内：外部遷移を発生させないため redirectUri は付けない
+      if (!liff.isLoggedIn()) { liff.login(); return false; }
+
+      try { await liff.getProfile(); return true; }
+      catch { liff.login(); return false; }
     }
 
     (async()=>{ try{ await ensureLogin(); }catch(e){ console.error(e); } })();
 
+    // --- 3) 送信 ---
     form.addEventListener("submit", onSubmit);
 
     async function onSubmit(ev){
@@ -138,13 +143,23 @@
       btn.disabled=true; btn.textContent="送信中…";
       try{
         const prof = await liff.getProfile();
-        const meta = { userId: prof.userId, displayName: prof.displayName || "", ts: Date.now(), ua: navigator.userAgent };
+        const meta = {
+          userId: prof.userId,
+          displayName: prof.displayName || "",
+          ts: Date.now(),
+          ua: navigator.userAgent
+        };
 
-        const res = await fetch(GAS_ENDPOINT,{ method:"POST", body:JSON.stringify({ action:"submit-form", meta, payload })});
+        const res = await fetch(GAS_ENDPOINT, {
+          method:"POST",
+          body: JSON.stringify({ action:"submit-form", meta, payload })
+        });
         const j = await res.json().catch(()=>null);
+
         if(res.ok && j && j.ok){
           msg.textContent="結果をLINEで送信しました。";
-          setTimeout(()=>liff.closeWindow?.(),0);
+          // LIFF内ならトークに戻る
+          setTimeout(()=> liff.closeWindow && liff.closeWindow(), 0);
         }else{
           msg.textContent="送信に失敗しました。";
           btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
