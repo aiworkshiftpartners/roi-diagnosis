@@ -38,15 +38,19 @@
         </select>
         <div class="error-msg" data-for="target"></div>
 
-        <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は？</label>
-        <input id="monthly_hours" name="monthly_hours" class="field" type="number" min="1" max="20000" step="1" placeholder="例：8000" required />
+        <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は何時間ですか？</label>
+        <p class="help" style="margin:-8px 0 8px;">
+          例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong>
+        </p>
+        <input id="monthly_hours" name="monthly_hours" class="field" type="number"
+              min="1" max="20000" step="1" placeholder="例：200" required />
         <div class="error-msg" data-for="monthly_hours"></div>
 
-        <label for="hourly_wage">その業務に関わる方の「平均時給」（円）</label>
+        <label for="hourly_wage">その業務に関わる方の「平均時給」何円ですか？</label>
         <input id="hourly_wage" name="hourly_wage" class="field" type="number" min="1" max="100000" step="1" placeholder="例：2000" required />
         <div class="error-msg" data-for="hourly_wage"></div>
 
-        <label for="reduction_rate">削減できると期待する割合</label>
+        <label for="reduction_rate">削減できると期待する割合はどのくらいですか？</label>
         <select id="reduction_rate" name="reduction_rate" class="field" required>
           <option value="" selected disabled>選択してください</option>
           <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
