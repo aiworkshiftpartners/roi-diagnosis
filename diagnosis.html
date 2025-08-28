@@ -18,7 +18,8 @@
     .field:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
     .btn{width:100%;padding:14px;margin-top:22px;border:none;border-radius:10px;background:#1a2e44;color:#fff;font-size:16px;font-weight:800;cursor:pointer}
     .btn[disabled]{opacity:.55;cursor:not-allowed}
-    #msg{margin-top:12px;font-size:13px;color:#666;min-height:1.2em}
+    .error{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.3) !important;}
+    .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
   </style>
 </head>
 <body>
@@ -35,21 +36,24 @@
           <option>勤怠・労務管理が手作業で集計に時間がかかる</option>
           <option>請求書作成が手作業でミスや負担が多い</option>
         </select>
+        <div class="error-msg" data-for="target"></div>
 
-        <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は、おおよそ何時間ですか？</label>
+        <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は？</label>
         <input id="monthly_hours" name="monthly_hours" class="field" type="number" min="1" max="20000" step="1" placeholder="例：8000" required />
-        <p class="help" style="margin-top:6px">※複数の担当者・チームの合計時間で入力してください（例：40人×200h＝8000h）</p>
+        <div class="error-msg" data-for="monthly_hours"></div>
 
-        <label for="hourly_wage">その業務に関わる方の「平均時給」は、おおよそ何円ですか？</label>
+        <label for="hourly_wage">その業務に関わる方の「平均時給」（円）</label>
         <input id="hourly_wage" name="hourly_wage" class="field" type="number" min="1" max="100000" step="1" placeholder="例：2000" required />
+        <div class="error-msg" data-for="hourly_wage"></div>
 
-        <label for="reduction_rate">AI導入によって、Q2の月間作業時間をどのくらい削減できると期待しますか？</label>
+        <label for="reduction_rate">削減できると期待する割合</label>
         <select id="reduction_rate" name="reduction_rate" class="field" required>
           <option value="" selected disabled>選択してください</option>
           <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
           <option value="40">40%</option><option value="50">50%</option><option value="60">60%</option>
           <option value="70">70%</option><option value="80">80%</option><option value="90">90%</option>
         </select>
+        <div class="error-msg" data-for="reduction_rate"></div>
 
         <button type="submit" id="submitBtn" class="btn">診断してLINEに結果を受け取る</button>
       </form>
@@ -61,23 +65,38 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
   (function(){
-    // ==== 固定値（差し替え済み） ====
     const LIFF_ID      = "2007979122-jkyZVlN1";
-    const GAS_ENDPOINT = "/submit";  // ← 同一オリジンの Functions へ
-    // ===============================
+    const GAS_ENDPOINT = "/submit";
 
     const form = document.getElementById("f");
     const btn  = document.getElementById("submitBtn");
     const msg  = document.getElementById("msg");
-    const show = (m)=>{ msg.textContent = m || ""; };
 
-    function toN(v){ return Number(v); }
+    function clearErrors(){
+      document.querySelectorAll(".field").forEach(el=>el.classList.remove("error"));
+      document.querySelectorAll(".error-msg").forEach(el=>el.textContent="");
+    }
+
+    function setError(fieldId, message){
+      const field = document.getElementById(fieldId);
+      field.classList.add("error");
+      const em = document.querySelector(`.error-msg[data-for="${fieldId}"]`);
+      if(em) em.textContent = message;
+    }
+
     function validate(p){
-      if(!p.target) return "対象業務を選択してください。";
-      const h = toN(p.monthly_hours); if(!(Number.isFinite(h)&&h>=1&&h<=20000)) return "作業時間は1〜20,000で入力してください。";
-      const w = toN(p.hourly_wage);   if(!(Number.isFinite(w)&&w>=1&&w<=100000)) return "時給は1〜100,000で入力してください。";
-      const r = toN(p.reduction_rate);if(!(Number.isFinite(r)&&r>=1&&r<=90))   return "削減率は1〜90%で選択してください。";
-      return null;
+      let valid = true;
+      clearErrors();
+
+      if(!p.target){ setError("target","対象業務を選択してください。"); valid=false; }
+      const h = Number(p.monthly_hours);
+      if(!(Number.isFinite(h)&&h>=1&&h<=20000)){ setError("monthly_hours","作業時間は1〜20,000で入力してください。"); valid=false; }
+      const w = Number(p.hourly_wage);
+      if(!(Number.isFinite(w)&&w>=1&&w<=100000)){ setError("hourly_wage","時給は1〜100,000で入力してください。"); valid=false; }
+      const r = Number(p.reduction_rate);
+      if(!(Number.isFinite(r)&&r>=1&&r<=90)){ setError("reduction_rate","削減率は1〜90%で選択してください。"); valid=false; }
+
+      return valid;
     }
 
     async function ensureLogin(){
@@ -92,43 +111,29 @@
     form.addEventListener("submit", onSubmit);
 
     async function onSubmit(ev){
-      ev.preventDefault(); show("");
-      const ok = await ensureLogin(); if(!ok) return;
-
+      ev.preventDefault(); msg.textContent="";
       const fd = new FormData(form);
       const payload = Object.fromEntries(fd.entries());
-      const err = validate(payload); if(err){ show(err); return; }
 
-      btn.disabled = true; btn.textContent = "送信中…";
+      if(!validate(payload)) return;
 
+      btn.disabled=true; btn.textContent="送信中…";
       try{
         const prof = await liff.getProfile();
-        const meta = {
-        userId: prof.userId,
-        displayName: prof.displayName || "",
-        ts: Date.now(),
-        ua: navigator.userAgent,
-        ctxType: (typeof liff.getContext==="function" && liff.getContext()) ? liff.getContext().type : ""
-        };
+        const meta = { userId: prof.userId, displayName: prof.displayName || "", ts: Date.now(), ua: navigator.userAgent };
 
-        const res = await fetch(GAS_ENDPOINT, {
-          method: "POST",
-          body: JSON.stringify({ action:"submit-form", meta, payload })
-        });
-
+        const res = await fetch(GAS_ENDPOINT,{ method:"POST", body:JSON.stringify({ action:"submit-form", meta, payload })});
         const j = await res.json().catch(()=>null);
         if(res.ok && j && j.ok){
-          show("結果をLINEで送信しました。");
-          setTimeout(()=>liff.closeWindow?.(), 0);
-        } else {
-          show("送信に失敗しました。時間をおいて再度お試しください。");
-          btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
+          msg.textContent="結果をLINEで送信しました。";
+          setTimeout(()=>liff.closeWindow?.(),0);
+        }else{
+          msg.textContent="送信に失敗しました。";
+          btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
         }
-
       }catch(e){
-        console.error("送信エラー", e);
-        show("送信に失敗しました。");
-        btn.disabled = false; btn.textContent = "診断してLINEに結果を受け取る";
+        msg.textContent="送信に失敗しました。";
+        btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
       }
     }
   })();
