@@ -67,6 +67,25 @@
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- ▼ 追加：外部/通常ブラウザで開かれたらLIFFに強制リダイレクト -->
+  <script>
+    (async () => {
+      const LIFF_ID = "2007979122-jkyZVlN1";
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        const ctx = liff.getContext && liff.getContext();
+        const isExternal = ctx && ctx.type === 'external';
+        if (!liff.isInClient() || isExternal) {
+          location.replace(`https://liff.line.me/${LIFF_ID}`);
+        }
+      } catch (_) {
+        // 失敗時は何もしない（下の通常フローに委ねる）
+      }
+    })();
+  </script>
+  <!-- ▲ ここまで追加 -->
+
   <script>
   (function(){
     const LIFF_ID      = "2007979122-jkyZVlN1";
