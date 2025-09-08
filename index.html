@@ -26,23 +26,24 @@
 
     /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
     /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
+/* ▼複数選択チェックボックス */
 .checklist {
   display: flex;
   flex-direction: column;
-  gap: 6px;               /* ← 選択肢同士の間を少し狭く（以前は10〜12px） */
-  margin-top: 4px;        /* ← 質問文との間を半分くらいに（以前は8〜10px） */
-  margin-bottom: 24px;    /* ← 勤怠管理と次の質問の行間はそのまま広めに */
+  gap: 8px;              /* ← 全体の選択肢間を均一にする */
+  margin-top: 4px;       /* 質問文との間を少し狭める */
+  margin-bottom: 20px;   /* 次の質問との余白は少し広めに */
 }
 .checklist-row {
   display: flex;
-  gap: 8px;               /* ← 横並びの間隔も少し詰める（以前は12px） */
+  gap: 12px;             /* 会計管理と経営レポート作成の横の間隔 */
   flex-wrap: wrap;
 }
 .checklist label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;      /* ← 内側も少し詰める */
+  padding: 6px 10px;
   border: 1px solid #d1d5db;
   border-radius: 10px;
   cursor: pointer;
@@ -52,6 +53,7 @@
 }
 .checklist input { transform: scale(1.05); }
 .nowrap { white-space: nowrap; }
+
 
   </style>
 </head>
