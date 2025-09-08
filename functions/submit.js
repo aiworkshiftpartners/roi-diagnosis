@@ -1,9 +1,8 @@
 export async function onRequestPost(context) {
   try {
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbymJEYZn2RcaEEdWFWSGh2zyKQkGWabU-LtCfnMf9TmWihWYi5El5nL_BsMnWeHcvoJ/exec";
-
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbznLGfM3y4HQeBxo7lAJSig2AQNi-CJQcUZK9HBIIEvjqIkL-rU9-Ua0jZuqQSAcKOF/exec";
     const body = await context.request.text();
-    const res  = await fetch(GAS_URL, { method: "POST", body });
+    const res  = await fetch(GAS_URL, { method:"POST", body });
     const txt  = await res.text();
 
     return new Response(txt, {
@@ -17,10 +16,7 @@ export async function onRequestPost(context) {
   } catch (e) {
     return new Response(JSON.stringify({ ok:false }), {
       status: 500,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: { "Content-Type":"application/json", "Access-Control-Allow-Origin":"*" },
     });
   }
 }
