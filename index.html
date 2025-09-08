@@ -53,12 +53,15 @@
 
       <form id="f" novalidate>
         <label>どの業務の課題解決を最も期待しますか？（複数選択）</label>
-        <div class="checklist">
-          <label><input type="checkbox" name="targets" value="会計管理"> 会計管理</label>
-          <label><input type="checkbox" name="targets" value="勤怠管理"> 勤怠管理</label>
-          <label><input type="checkbox" name="targets" value="経営レポート作成"><span class="nowrap">経営レポート作成</span></label>
-        </div>
-        <div class="error-msg" data-for="targets"></div>
+<div class="checklist">
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <label><input type="checkbox" name="targets" value="会計管理"> 会計管理</label>
+    <label><input type="checkbox" name="targets" value="経営レポート作成"><span class="nowrap">経営レポート作成</span></label>
+  </div>
+  <label><input type="checkbox" name="targets" value="勤怠管理"> 勤怠管理</label>
+</div>
+<div class="error-msg" data-for="targets"></div>
+
 
         <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は何時間ですか？</label>
         <p class="help" style="margin:-8px 0 8px;">例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong></p>
