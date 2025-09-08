@@ -1,16 +1,16 @@
 // functions/submit.js
 export async function onRequestPost(context) {
   try {
-    // ← ここに「いま使っている最新の GAS /exec」をコピペ
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyXypHxZj4OXNgRlmEZ-HMzx6JeyorCxGLXBi0_9sOfUbTTA_DLGdZSNu2kiLFoNbYB/exec";
+    // ここはGASのデプロイURL（/exec）に差し替え
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxYZnMTnj36JNu9Ig4YeKgOv_6A4gMk-sJeDpTuSHfc6hVkphcQon0b6uejLuKdN8uY/exec";
 
-    // クライアントのJSONをそのままGASへ中継（ヘッダ不要 → プリフライト回避）
+    // クライアントからのJSONをそのままGASへ中継（ヘッダ付与しない＝プリフライト回避）
     const body = await context.request.text();
     const res  = await fetch(GAS_URL, { method: "POST", body });
 
-    const txt  = await res.text(); // GASの返答（JSON想定）
+    const txt  = await res.text(); // GAS側はJSON返却想定
 
-    // 同一オリジンで返すのでCORS不要（念のため許可も付けておく）
+    // 同一オリジン返却（CORSは念のため許可）
     return new Response(txt, {
       status: res.status,
       headers: {

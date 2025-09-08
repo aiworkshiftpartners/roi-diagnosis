@@ -29,25 +29,25 @@
       <p class="help">入力後、結果は<strong>LINEのトーク</strong>に自動送信されます。</p>
 
       <form id="f" novalidate>
-        <label for="target">どの業務の課題解決を最も期待しますか？</label>
+        <!-- Q1：freeeの3本柱に統一 -->
+        <label for="target">どの業務領域の改善を最も期待しますか？</label>
         <select id="target" name="target" class="field" required>
           <option value="" selected disabled>選択してください</option>
-          <option>配車計画が属人的で非効率</option>
-          <option>勤怠・労務管理が手作業で集計に時間がかかる</option>
-          <option>請求書作成が手作業でミスや負担が多い</option>
+          <option>会計管理</option>
+          <option>勤怠管理</option>
+          <option>経営レポート作成</option>
         </select>
         <div class="error-msg" data-for="target"></div>
 
         <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は何時間ですか？</label>
-        <p class="help" style="margin:-8px 0 8px;">
-          例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong>
-        </p>
+        <p class="help" style="margin:-8px 0 8px;">例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong></p>
         <input id="monthly_hours" name="monthly_hours" class="field" type="number"
                min="1" max="20000" step="1" placeholder="例：200" required />
         <div class="error-msg" data-for="monthly_hours"></div>
 
-        <label for="hourly_wage">その業務に関わる方の「平均時給」何円ですか？</label>
-        <input id="hourly_wage" name="hourly_wage" class="field" type="number" min="1" max="100000" step="1" placeholder="例：2000" required />
+        <label for="hourly_wage">その業務に関わる方の「平均時給」は何円ですか？</label>
+        <input id="hourly_wage" name="hourly_wage" class="field" type="number"
+               min="1" max="100000" step="1" placeholder="例：2000" required />
         <div class="error-msg" data-for="hourly_wage"></div>
 
         <label for="reduction_rate">削減できると期待する割合はどのくらいですか？</label>
@@ -66,18 +66,18 @@
     </div>
   </div>
 
+  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
   (function(){
-    const LIFF_ID      = "2007979122-Y76xKzkV";
-    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ルートに統一
-    const GAS_ENDPOINT = "/submit";
+    const LIFF_ID      = "2007979122-Y76xKzkV";          // ← あなたのLIFF ID
+    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ルートURL（Pages独自ドメイン）
+    const GAS_ENDPOINT = "/submit";                       // Cloudflare Functions 経由
 
-    // --- 1) オリジン統一：pages.dev 等で開かれたら独自ドメインへ移動（PKCE安定化） ---
+    // 独自ドメインに寄せる（PKCE安定化）
     (function enforceCanonical(){
       const here = location.origin;
       if (here !== CANON_URL) {
-        // ルートに寄せる（クエリは引き継がない：PKCE安定のため）
         if ((location.origin + location.pathname) !== CANON_URL + "/") {
           location.replace(CANON_URL);
         }
@@ -111,36 +111,28 @@
       return valid;
     }
 
-    // --- 2) LIFF起動：LIFF内/外で挙動を分岐（外部ならLIFF URLへ誘導） ---
+    // LIFF起動
     async function ensureLogin(){
       await liff.init({ liffId: LIFF_ID });
-
       if (!liff.isInClient()) {
-        // 外部ブラウザ → 必ずLIFFで開かせる
         location.replace(`https://liff.line.me/${LIFF_ID}`);
         return false;
       }
-
-      // LIFF内：外部遷移を発生させないため redirectUri は付けない
       if (!liff.isLoggedIn()) { liff.login(); return false; }
-
       try { await liff.getProfile(); return true; }
       catch { liff.login(); return false; }
     }
-
     (async()=>{ try{ await ensureLogin(); }catch(e){ console.error(e); } })();
 
-    // --- 3) 送信 ---
+    // 送信
     form.addEventListener("submit", onSubmit);
-
     async function onSubmit(ev){
       ev.preventDefault(); msg.textContent="";
       const fd = new FormData(form);
       const payload = Object.fromEntries(fd.entries());
-
       if(!validate(payload)) return;
 
-      btn.disabled=true; btn.textContent="送信中…";
+      btn.disabled = true; btn.textContent = "送信中…";
       try{
         const prof = await liff.getProfile();
         const meta = {
@@ -149,23 +141,18 @@
           ts: Date.now(),
           ua: navigator.userAgent
         };
-
-        const res = await fetch(GAS_ENDPOINT, {
-          method:"POST",
-          body: JSON.stringify({ action:"submit-form", meta, payload })
-        });
-        const j = await res.json().catch(()=>null);
+        const res = await fetch(GAS_ENDPOINT, { method:"POST", body: JSON.stringify({ action:"submit-form", meta, payload }) });
+        const j   = await res.json().catch(()=>null);
 
         if(res.ok && j && j.ok){
-          msg.textContent="結果をLINEで送信しました。";
-          // LIFF内ならトークに戻る
+          msg.textContent = "結果をLINEで送信しました。";
           setTimeout(()=> liff.closeWindow && liff.closeWindow(), 0);
         }else{
-          msg.textContent="送信に失敗しました。";
+          msg.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
           btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
         }
       }catch(e){
-        msg.textContent="送信に失敗しました。";
+        msg.textContent = "送信に失敗しました。通信環境をご確認ください。";
         btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
       }
     }
