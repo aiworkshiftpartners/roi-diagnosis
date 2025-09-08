@@ -13,7 +13,7 @@
     .card{width:100%;max-width:560px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
     h1{margin:0 0 14px;font-weight:800;font-size:clamp(26px,6vw,36px)}
 
-    /* 質問と入力欄の間隔を広めに */
+    /* 質問と入力欄の間隔 */
     .help{font-size:13px;color:#666;margin:0 0 10px;line-height:1.5}
     label{display:block;margin:16px 0 8px;font-weight:600;line-height:1.4}
 
@@ -24,37 +24,30 @@
     .error{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.3) !important;}
     .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
 
-    /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
-    /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
-/* ▼複数選択チェックボックス */
-.checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;              /* ← 全体の選択肢間を均一にする */
-  margin-top: 4px;       /* 質問文との間を少し狭める */
-  margin-bottom: 20px;   /* 次の質問との余白は少し広めに */
-}
-.checklist-row {
-  display: flex;
-  gap: 12px;             /* 会計管理と経営レポート作成の横の間隔 */
-  flex-wrap: wrap;
-}
-.checklist label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  cursor: pointer;
-  background: #fff;
-  width: fit-content;
-  max-width: 100%;
-}
-.checklist input { transform: scale(1.05); }
-.nowrap { white-space: nowrap; }
+    /* ▼複数選択チェックボックス（横+縦のレイアウト） */
+    .checklist{display:flex;flex-direction:column;gap:10px;margin-top:8px;margin-bottom:12px}
+    .checklist-row{display:flex;gap:12px;flex-wrap:wrap}
+    .checklist label{
+      display:inline-flex;align-items:center;gap:8px;margin:0;
+      padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;cursor:pointer;background:#fff;
+      width:fit-content;max-width:100%;
+    }
+    .checklist input{transform:scale(1.05)}
+    .nowrap{white-space:nowrap}
 
-
+    /* ▼モバイル専用調整 */
+    @media (max-width: 640px) {
+      /* 質問文と選択肢全体の余白を半分に */
+      label[for="targets"], 
+      .checklist {
+        margin-top: 4px !important;
+        margin-bottom: 10px !important;
+      }
+      /* 会計管理と勤怠管理の縦間隔を狭める */
+      .checklist {
+        gap: 4px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -64,7 +57,7 @@
       <p class="help">入力後、結果は<strong>LINEのトーク</strong>に自動送信されます。</p>
 
       <form id="f" novalidate>
-        <label>どの業務の課題解決を最も期待しますか？（複数選択）</label>
+        <label for="targets">どの業務の課題解決を最も期待しますか？（複数選択）</label>
         <div class="checklist">
           <div class="checklist-row">
             <label><input type="checkbox" name="targets" value="会計管理"> 会計管理</label>
@@ -102,7 +95,7 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
   (function(){
-    const LIFF_ID      = "2007979122-Y76xKzkV";          // 既存のLIFF ID
+    const LIFF_ID      = "2007979122-Y76xKzkV";
     const CANON_URL    = "https://form.aiworkshiftpartners.com";
     const GAS_ENDPOINT = "/submit";
 
@@ -151,7 +144,6 @@
       if (submitting) return;
       msg.textContent="";
 
-      // 複数チェックボックスを配列で取得
       const targets = Array.from(document.querySelectorAll('input[name="targets"]:checked')).map(el=>el.value);
       const payload = {
         targets,
@@ -189,7 +181,7 @@
           setTimeout(()=> liff.closeWindow && liff.closeWindow(), 0);
         }
       }catch(e){
-        msg.textContent="送信に失敗しました。通信環境をご確認ください";
+        msg.textContent = "送信に失敗しました。通信環境をご確認ください";
       }finally{
         submitting=false;
         btn.disabled=false;
