@@ -12,37 +12,28 @@
     .wrap{min-height:100%;display:grid;place-items:start center;padding:24px}
     .card{width:100%;max-width:560px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
     h1{margin:0 0 14px;font-weight:800;font-size:clamp(26px,6vw,36px)}
-    .help{font-size:13px;color:#666;margin:0 0 18px}
-    label{display:block;margin:18px 0 6px;font-weight:600}
+
+    /* 行間とマージンをコンパクトに */
+    .help{font-size:13px;color:#666;margin:0 0 10px;line-height:1.4}
+    label{display:block;margin:12px 0 4px;font-weight:600;line-height:1.4}
+
     .field{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:10px;font-size:16px;background:#fff}
     .field:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
-    .btn{width:100%;padding:14px;margin-top:22px;border:none;border-radius:10px;background:#1a2e44;color:#fff;font-size:16px;font-weight:800;cursor:pointer}
+    .btn{width:100%;padding:14px;margin-top:18px;border:none;border-radius:10px;background:#1a2e44;color:#fff;font-size:16px;font-weight:800;cursor:pointer}
     .btn[disabled]{opacity:.55;cursor:not-allowed}
     .error{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.3) !important;}
     .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
 
-    /* ▼複数選択チェックボックス縦並び */
-    .checklist{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      margin-top:8px;
-    }
+    /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
+    .checklist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+    .checklist-row{display:flex;gap:12px;flex-wrap:wrap}
     .checklist label{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      margin:0;
-      padding:8px 10px;
-      border:1px solid #d1d5db;
-      border-radius:10px;
-      cursor:pointer;
-      background:#fff;
-      width:fit-content;
-      max-width:100%;
+      display:inline-flex;align-items:center;gap:8px;margin:0;
+      padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;cursor:pointer;background:#fff;
+      width:fit-content;max-width:100%;
     }
-    .checklist input{ transform:scale(1.05) }
-    .nowrap{ white-space:nowrap }
+    .checklist input{transform:scale(1.05)}
+    .nowrap{white-space:nowrap}
   </style>
 </head>
 <body>
@@ -53,18 +44,17 @@
 
       <form id="f" novalidate>
         <label>どの業務の課題解決を最も期待しますか？（複数選択）</label>
-<div class="checklist">
-  <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <label><input type="checkbox" name="targets" value="会計管理"> 会計管理</label>
-    <label><input type="checkbox" name="targets" value="経営レポート作成"><span class="nowrap">経営レポート作成</span></label>
-  </div>
-  <label><input type="checkbox" name="targets" value="勤怠管理"> 勤怠管理</label>
-</div>
-<div class="error-msg" data-for="targets"></div>
-
+        <div class="checklist">
+          <div class="checklist-row">
+            <label><input type="checkbox" name="targets" value="会計管理"> 会計管理</label>
+            <label><input type="checkbox" name="targets" value="経営レポート作成"><span class="nowrap">経営レポート作成</span></label>
+          </div>
+          <label><input type="checkbox" name="targets" value="勤怠管理"> 勤怠管理</label>
+        </div>
+        <div class="error-msg" data-for="targets"></div>
 
         <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は何時間ですか？</label>
-        <p class="help" style="margin:-8px 0 8px;">例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong></p>
+        <p class="help" style="margin:-4px 0 8px;">例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong></p>
         <input id="monthly_hours" name="monthly_hours" class="field" type="number"
                min="1" max="20000" step="1" placeholder="例：200" required />
         <div class="error-msg" data-for="monthly_hours"></div>
@@ -118,7 +108,7 @@
       const w = Number(p.hourly_wage);
       if(!(Number.isFinite(w)&&w>=1&&w<=100000)){ setError("hourly_wage","時給は1〜100,000で入力してください。"); valid=false; }
       const r = Number(p.reduction_rate);
-      if(!(Number.isFinite(r)&&r>=1&&r<=90)){ setError("reduction_rate","削減率は1〜90%で選択してください。"); valid=false; }
+      if(!(Number.isFinite(r)&&r>=10&&r<=50)){ setError("reduction_rate","削減率は10〜50%から選択してください。"); valid=false; }
       return valid;
     }
 
@@ -140,9 +130,14 @@
       if (submitting) return;
       msg.textContent="";
 
-      const fd = new FormData(form);
-      let payload = Object.fromEntries(fd.entries());
-      payload.targets = fd.getAll("targets"); // ← 複数チェックボックス対応
+      // 複数チェックボックスを配列で取得
+      const targets = Array.from(document.querySelectorAll('input[name="targets"]:checked')).map(el=>el.value);
+      const payload = {
+        targets,
+        monthly_hours: document.getElementById("monthly_hours").value,
+        hourly_wage: document.getElementById("hourly_wage").value,
+        reduction_rate: document.getElementById("reduction_rate").value
+      };
 
       if(!validate(payload)) return;
 
