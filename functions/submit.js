@@ -1,6 +1,6 @@
 export async function onRequestPost(context) {
   try {
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbznLGfM3y4HQeBxo7lAJSig2AQNi-CJQcUZK9HBIIEvjqIkL-rU9-Ua0jZuqQSAcKOF/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxkIrO8TdEFn6G_klhBeJCRFFLVOB_6b4reDkDZtNvMSc-DXhvTIaPotjvAWmYIKgLg/exec";
     const body = await context.request.text();
     const res  = await fetch(GAS_URL, { method:"POST", body });
     const txt  = await res.text();

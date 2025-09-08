@@ -25,15 +25,19 @@
     .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
 
     /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
-    .checklist{display:flex;flex-direction:column;gap:10px;margin-top:8px;margin-bottom:12px}
-    .checklist-row{display:flex;gap:12px;flex-wrap:wrap}
-    .checklist label{
-      display:inline-flex;align-items:center;gap:8px;margin:0;
-      padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;cursor:pointer;background:#fff;
-      width:fit-content;max-width:100%;
-    }
-    .checklist input{transform:scale(1.05)}
-    .nowrap{white-space:nowrap}
+    .checklist{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin:10px 0 24px; /* ← margin-bottom を大きめに */
+  }
+  .checklist-row{display:flex;gap:12px;flex-wrap:wrap}
+  .checklist label{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 12px;
+    border:1px solid #d1d5db;border-radius:10px;background:#fff;cursor:pointer;
+  }
+  .checklist input{transform:scale(1.05)}
+  .nowrap{white-space:nowrap}
   </style>
 </head>
 <body>
