@@ -10,7 +10,7 @@
     html,body{height:100%;margin:0}
     body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;background:#fafafa;color:#111;line-height:1.8}
     .wrap{min-height:100%;display:grid;place-items:start center;padding:24px}
-    .card{width:100%;max-width:640px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+    .card{width:100%;max-width:560px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px 24px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
     h1{margin:0 0 14px;font-weight:800;font-size:clamp(26px,6vw,36px)}
     .help{font-size:13px;color:#666;margin:0 0 18px}
     label{display:block;margin:18px 0 6px;font-weight:600}
@@ -20,10 +20,29 @@
     .btn[disabled]{opacity:.55;cursor:not-allowed}
     .error{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.3) !important;}
     .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
-    .checklist{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .checklist label{display:flex;align-items:center;gap:8px;margin:0;padding:10px;border:1px solid #d1d5db;border-radius:10px;cursor:pointer;background:#fff}
-    .checklist input{transform:scale(1.1)}
-    .nowrap{white-space:nowrap}
+
+    /* ▼複数選択チェックボックス縦並び */
+    .checklist{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:8px;
+    }
+    .checklist label{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      margin:0;
+      padding:8px 10px;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      cursor:pointer;
+      background:#fff;
+      width:fit-content;
+      max-width:100%;
+    }
+    .checklist input{ transform:scale(1.05) }
+    .nowrap{ white-space:nowrap }
   </style>
 </head>
 <body>
@@ -48,18 +67,14 @@
         <div class="error-msg" data-for="monthly_hours"></div>
 
         <label for="hourly_wage">その業務に関わる方の「平均時給」は何円ですか？</label>
-        <input id="hourly_wage" name="hourly_wage" class="field" type="number"
-               min="1" max="100000" step="1" placeholder="例：2000" required />
+        <input id="hourly_wage" name="hourly_wage" class="field" type="number" min="1" max="100000" step="1" placeholder="例：2000" required />
         <div class="error-msg" data-for="hourly_wage"></div>
 
-        <label for="reduction_rate">AI導入によって、Q2の月間作業時間をどのくらい削減できると期待しますか？</label>
+        <label for="reduction_rate">削減できると期待する割合はどのくらいですか？</label>
         <select id="reduction_rate" name="reduction_rate" class="field" required>
           <option value="" selected disabled>選択してください</option>
-          <option value="10">A. 10%</option>
-          <option value="20">B. 20%</option>
-          <option value="30">C. 30%</option>
-          <option value="40">D. 40%</option>
-          <option value="50">E. 50%</option>
+          <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
+          <option value="40">40%</option><option value="50">50%</option>
         </select>
         <div class="error-msg" data-for="reduction_rate"></div>
 
@@ -70,13 +85,12 @@
     </div>
   </div>
 
-  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
   (function(){
-    const LIFF_ID      = "YOUR_LIFF_ID_HERE";                 // ← 差し替え
-    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ← 差し替え（独自ドメイン）
-    const GAS_ENDPOINT = "/submit";                            // Cloudflare Functions 経由の相対パス
+    const LIFF_ID      = "2007979122-Y76xKzkV";          // 既存のLIFF ID
+    const CANON_URL    = "https://form.aiworkshiftpartners.com";
+    const GAS_ENDPOINT = "/submit";
 
     const form = document.getElementById("f");
     const btn  = document.getElementById("submitBtn");
@@ -85,73 +99,48 @@
     function clearErrors(){
       document.querySelectorAll(".field").forEach(el=>el.classList.remove("error"));
       document.querySelectorAll(".error-msg").forEach(el=>el.textContent="");
-      document.querySelector('[data-for="targets"]').textContent="";
     }
     function setError(fieldId, message){
+      const field = document.getElementById(fieldId);
+      if(field) field.classList.add("error");
       const em = document.querySelector(`.error-msg[data-for="${fieldId}"]`);
       if(em) em.textContent = message;
     }
     function validate(p){
       let valid = true;
       clearErrors();
-
-      if(!Array.isArray(p.targets) || p.targets.length === 0){
-        setError("targets","少なくとも1つ選択してください。");
-        valid = false;
-      }
+      if(!p.targets || p.targets.length===0){ setError("targets","少なくとも1つ選択してください。"); valid=false; }
       const h = Number(p.monthly_hours);
       if(!(Number.isFinite(h)&&h>=1&&h<=20000)){ setError("monthly_hours","作業時間は1〜20,000で入力してください。"); valid=false; }
       const w = Number(p.hourly_wage);
       if(!(Number.isFinite(w)&&w>=1&&w<=100000)){ setError("hourly_wage","時給は1〜100,000で入力してください。"); valid=false; }
       const r = Number(p.reduction_rate);
-      if(!(Number.isFinite(r)&&r>=10&&r<=50)){ setError("reduction_rate","削減率は10%〜50%から選択してください。"); valid=false; }
+      if(!(Number.isFinite(r)&&r>=1&&r<=90)){ setError("reduction_rate","削減率は1〜90%で選択してください。"); valid=false; }
       return valid;
     }
-    function showError(prefix, detail){
-      console.error(prefix, detail);
-      msg.textContent = `${prefix}${detail ? "（" + detail + "）" : ""}`;
-    }
 
-    // LIFF初期化（リダイレクト最小化）
     (async function boot(){
       try {
         await liff.init({ liffId: LIFF_ID });
-        const inClient = liff.isInClient();
-
-        if (!inClient && location.origin !== CANON_URL) {
-          location.replace(CANON_URL + location.pathname + location.search + location.hash);
-          return;
-        }
-        if (!inClient && !liff.isLoggedIn()) {
-          liff.login({ redirectUri: location.href });
-          return;
-        }
-        try { await liff.getProfile(); }
-        catch (_) {
-          if (!inClient) {
-            liff.login({ redirectUri: location.href });
-            return;
-          }
-        }
+        if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+        await liff.getProfile();
       } catch (e) {
-        showError("初期化に失敗しました。時間をおいて再度お試しください", e && e.message);
+        msg.textContent = "初期化に失敗しました。時間をおいて再度お試しください";
       }
     })();
 
-    // 送信
     let submitting = false;
-    form.addEventListener("submit", async (ev)=>{
+    form.addEventListener("submit", onSubmit);
+
+    async function onSubmit(ev){
       ev.preventDefault();
       if (submitting) return;
-      msg.textContent = "";
+      msg.textContent="";
 
-      const targets = Array.from(document.querySelectorAll('input[name="targets"]:checked')).map(el=>el.value);
-      const payload = {
-        targets,
-        monthly_hours: document.getElementById("monthly_hours").value,
-        hourly_wage: document.getElementById("hourly_wage").value,
-        reduction_rate: document.getElementById("reduction_rate").value
-      };
+      const fd = new FormData(form);
+      let payload = Object.fromEntries(fd.entries());
+      payload.targets = fd.getAll("targets"); // ← 複数チェックボックス対応
+
       if(!validate(payload)) return;
 
       submitting = true;
@@ -171,27 +160,23 @@
           method:"POST",
           body: JSON.stringify({ action:"submit-form", meta, payload })
         });
-
         const bodyText = await res.text();
         let data = null;
-        try { data = JSON.parse(bodyText); } catch(_) {}
-
-        if (!res.ok) {
-          showError("送信に失敗しました。時間をおいて再度お試しください", "HTTP " + res.status);
-        } else if (!data || data.ok !== true) {
-          showError("送信に失敗しました。時間をおいて再度お試しください", (data && data.error) || bodyText.slice(0,200));
+        try { data = JSON.parse(bodyText); } catch(_){}
+        if (!res.ok || !data || data.ok!==true) {
+          msg.textContent = "送信に失敗しました。時間をおいて再度お試しください";
         } else {
           msg.textContent = "結果をLINEで送信しました。";
           setTimeout(()=> liff.closeWindow && liff.closeWindow(), 0);
         }
       }catch(e){
-        showError("送信に失敗しました。通信環境をご確認ください", e && e.message);
+        msg.textContent="送信に失敗しました。通信環境をご確認ください";
       }finally{
-        submitting = false;
-        btn.disabled = false;
-        btn.textContent = "診断してLINEに結果を受け取る";
+        submitting=false;
+        btn.disabled=false;
+        btn.textContent="診断してLINEに結果を受け取る";
       }
-    });
+    }
   })();
   </script>
 </body>

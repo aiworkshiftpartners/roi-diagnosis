@@ -1,13 +1,10 @@
-// functions/submit.js
 export async function onRequestPost(context) {
   try {
-    // ← 最新のGAS Webアプリ（/exec）URLに差し替え
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyyKFdF8aP7U8Hq-hANkbq9lX4AMyIi0fBQApwscPl-qcXQZ0I-kYSxGhqhtOuybv33/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbymJEYZn2RcaEEdWFWSGh2zyKQkGWabU-LtCfnMf9TmWihWYi5El5nL_BsMnWeHcvoJ/exec";
 
-    const body = await context.request.text(); // ヘッダ付けずにそのまま転送（プリフライト回避）
+    const body = await context.request.text();
     const res  = await fetch(GAS_URL, { method: "POST", body });
-
-    const txt  = await res.text(); // GASはJSON返却想定
+    const txt  = await res.text();
 
     return new Response(txt, {
       status: res.status,
@@ -18,7 +15,7 @@ export async function onRequestPost(context) {
       },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ ok:false, error:String(e) }), {
+    return new Response(JSON.stringify({ ok:false }), {
       status: 500,
       headers: {
         "Content-Type": "application/json",
