@@ -29,13 +29,12 @@
       <p class="help">入力後、結果は<strong>LINEのトーク</strong>に自動送信されます。</p>
 
       <form id="f" novalidate>
-        <!-- Q1：freeeの3本柱に統一 -->
         <label for="target">どの業務領域の改善を最も期待しますか？</label>
         <select id="target" name="target" class="field" required>
           <option value="" selected disabled>選択してください</option>
-          <option>会計管理</option>
-          <option>勤怠管理</option>
-          <option>経営レポート作成</option>
+          <option>クラウド会計管理</option>
+          <option>クラウド勤怠管理</option>
+          <option>クラウド経営レポート</option>
         </select>
         <div class="error-msg" data-for="target"></div>
 
@@ -71,23 +70,14 @@
   <script>
   (function(){
     const LIFF_ID      = "2007979122-Y76xKzkV";          // ← あなたのLIFF ID
-    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ルートURL（Pages独自ドメイン）
+    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // あなたの独自ドメイン（末尾スラッシュ無）
     const GAS_ENDPOINT = "/submit";                       // Cloudflare Functions 経由
-
-    // 独自ドメインに寄せる（PKCE安定化）
-    (function enforceCanonical(){
-      const here = location.origin;
-      if (here !== CANON_URL) {
-        if ((location.origin + location.pathname) !== CANON_URL + "/") {
-          location.replace(CANON_URL);
-        }
-      }
-    })();
 
     const form = document.getElementById("f");
     const btn  = document.getElementById("submitBtn");
     const msg  = document.getElementById("msg");
 
+    // ====== バリデーション ======
     function clearErrors(){
       document.querySelectorAll(".field").forEach(el=>el.classList.remove("error"));
       document.querySelectorAll(".error-msg").forEach(el=>el.textContent="");
@@ -110,50 +100,93 @@
       if(!(Number.isFinite(r)&&r>=1&&r<=90)){ setError("reduction_rate","削減率は1〜90%で選択してください。"); valid=false; }
       return valid;
     }
-
-    // LIFF起動
-    async function ensureLogin(){
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isInClient()) {
-        location.replace(`https://liff.line.me/${LIFF_ID}`);
-        return false;
-      }
-      if (!liff.isLoggedIn()) { liff.login(); return false; }
-      try { await liff.getProfile(); return true; }
-      catch { liff.login(); return false; }
+    function showError(prefix, detail){
+      console.error(prefix, detail);
+      msg.textContent = `${prefix}${detail ? "（" + detail + "）" : ""}`;
     }
-    (async()=>{ try{ await ensureLogin(); }catch(e){ console.error(e); } })();
 
-    // 送信
+    // ====== 起動フロー（チカチカ対策：不要なリダイレクト・ログインを抑止） ======
+    (async function boot(){
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        const inClient = liff.isInClient();
+
+        // （必要な場合のみ）独自ドメインへ寄せる ※LIFF内では触らない
+        if (!inClient && location.origin !== CANON_URL) {
+          location.replace(CANON_URL + location.pathname + location.search + location.hash);
+          return;
+        }
+
+        // LIFF外：未ログインだけ login
+        if (!inClient && !liff.isLoggedIn()) {
+          liff.login({ redirectUri: location.href });
+          return;
+        }
+
+        // プロフィール確認（失敗時のみ login）
+        try { await liff.getProfile(); }
+        catch (_) {
+          if (!inClient) {
+            liff.login({ redirectUri: location.href });
+            return;
+          }
+        }
+      } catch (e) {
+        showError("初期化に失敗しました。時間をおいて再度お試しください", e && e.message);
+      }
+    })();
+
+    // ====== 送信 ======
+    let submitting = false;
     form.addEventListener("submit", onSubmit);
+
     async function onSubmit(ev){
-      ev.preventDefault(); msg.textContent="";
+      ev.preventDefault();
+      if (submitting) return;
+      msg.textContent = "";
+
       const fd = new FormData(form);
       const payload = Object.fromEntries(fd.entries());
       if(!validate(payload)) return;
 
-      btn.disabled = true; btn.textContent = "送信中…";
+      submitting = true;
+      btn.disabled = true;
+      btn.textContent = "送信中…";
+
       try{
-        const prof = await liff.getProfile();
+        const prof = await liff.getProfile(); // userId 取得
         const meta = {
           userId: prof.userId,
           displayName: prof.displayName || "",
           ts: Date.now(),
           ua: navigator.userAgent
         };
-        const res = await fetch(GAS_ENDPOINT, { method:"POST", body: JSON.stringify({ action:"submit-form", meta, payload }) });
-        const j   = await res.json().catch(()=>null);
 
-        if(res.ok && j && j.ok){
+        const res = await fetch(GAS_ENDPOINT, {
+          method:"POST",
+          body: JSON.stringify({ action:"submit-form", meta, payload })
+        });
+
+        const bodyText = await res.text();
+        let data = null;
+        try { data = JSON.parse(bodyText); } catch(_) {}
+
+        if (!res.ok) {
+          showError("送信に失敗しました。時間をおいて再度お試しください", "HTTP " + res.status);
+        } else if (!data || data.ok !== true) {
+          showError("送信に失敗しました。時間をおいて再度お試しください", (data && data.error) || bodyText.slice(0,200));
+        } else {
           msg.textContent = "結果をLINEで送信しました。";
+          // LIFF内ならウィンドウを閉じる
           setTimeout(()=> liff.closeWindow && liff.closeWindow(), 0);
-        }else{
-          msg.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
-          btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
         }
       }catch(e){
-        msg.textContent = "送信に失敗しました。通信環境をご確認ください。";
-        btn.disabled=false; btn.textContent="診断してLINEに結果を受け取る";
+        showError("送信に失敗しました。通信環境をご確認ください", e && e.message);
+      }finally{
+        submitting = false;
+        btn.disabled = false;
+        btn.textContent = "診断してLINEに結果を受け取る";
       }
     }
   })();
