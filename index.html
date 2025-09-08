@@ -21,8 +21,9 @@
     .error{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.3) !important;}
     .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
     .checklist{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .checklist label{display:flex;align-items:center;gap:8px;margin:0;padding:10px;border:1px solid #d1d5db;border-radius:10px;cursor:pointer}
+    .checklist label{display:flex;align-items:center;gap:8px;margin:0;padding:10px;border:1px solid #d1d5db;border-radius:10px;cursor:pointer;background:#fff}
     .checklist input{transform:scale(1.1)}
+    .nowrap{white-space:nowrap}
   </style>
 </head>
 <body>
@@ -32,30 +33,33 @@
       <p class="help">入力後、結果は<strong>LINEのトーク</strong>に自動送信されます。</p>
 
       <form id="f" novalidate>
-        <label>どの業務領域を改善しますか？（複数選択可）</label>
+        <label>どの業務の課題解決を最も期待しますか？（複数選択）</label>
         <div class="checklist">
           <label><input type="checkbox" name="targets" value="会計管理"> 会計管理</label>
           <label><input type="checkbox" name="targets" value="勤怠管理"> 勤怠管理</label>
-          <label><input type="checkbox" name="targets" value="経営レポート作成"> 経営レポート作成</label>
+          <label><input type="checkbox" name="targets" value="経営レポート作成"><span class="nowrap">経営レポート作成</span></label>
         </div>
         <div class="error-msg" data-for="targets"></div>
 
-        <label for="monthly_hours">月間合計作業時間（時間）</label>
+        <label for="monthly_hours">その業務に現在費やしている「月間合計作業時間」は何時間ですか？</label>
         <p class="help" style="margin:-8px 0 8px;">例）<strong>5人 × 1日2時間 × 20日 = 200時間</strong></p>
         <input id="monthly_hours" name="monthly_hours" class="field" type="number"
                min="1" max="20000" step="1" placeholder="例：200" required />
         <div class="error-msg" data-for="monthly_hours"></div>
 
-        <label for="hourly_wage">平均時給（円）</label>
+        <label for="hourly_wage">その業務に関わる方の「平均時給」は何円ですか？</label>
         <input id="hourly_wage" name="hourly_wage" class="field" type="number"
                min="1" max="100000" step="1" placeholder="例：2000" required />
         <div class="error-msg" data-for="hourly_wage"></div>
 
-        <label for="reduction_rate">削減率（%）</label>
+        <label for="reduction_rate">AI導入によって、Q2の月間作業時間をどのくらい削減できると期待しますか？</label>
         <select id="reduction_rate" name="reduction_rate" class="field" required>
           <option value="" selected disabled>選択してください</option>
-          <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option>
-          <option value="40">40%</option><option value="50">50%</option>
+          <option value="10">A. 10%</option>
+          <option value="20">B. 20%</option>
+          <option value="30">C. 30%</option>
+          <option value="40">D. 40%</option>
+          <option value="50">E. 50%</option>
         </select>
         <div class="error-msg" data-for="reduction_rate"></div>
 
@@ -70,18 +74,18 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
   (function(){
-    const LIFF_ID      = "2007979122-Y76xKzkV";          // ← あなたのLIFF ID
-    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ← あなたの独自ドメイン
-    const GAS_ENDPOINT = "/submit";                       // Cloudflare Functions 経由
+    const LIFF_ID      = "YOUR_LIFF_ID_HERE";                 // ← 差し替え
+    const CANON_URL    = "https://form.aiworkshiftpartners.com"; // ← 差し替え（独自ドメイン）
+    const GAS_ENDPOINT = "/submit";                            // Cloudflare Functions 経由の相対パス
 
     const form = document.getElementById("f");
     const btn  = document.getElementById("submitBtn");
     const msg  = document.getElementById("msg");
 
-    // ====== バリデーション ======
     function clearErrors(){
       document.querySelectorAll(".field").forEach(el=>el.classList.remove("error"));
       document.querySelectorAll(".error-msg").forEach(el=>el.textContent="");
+      document.querySelector('[data-for="targets"]').textContent="";
     }
     function setError(fieldId, message){
       const em = document.querySelector(`.error-msg[data-for="${fieldId}"]`);
@@ -100,7 +104,7 @@
       const w = Number(p.hourly_wage);
       if(!(Number.isFinite(w)&&w>=1&&w<=100000)){ setError("hourly_wage","時給は1〜100,000で入力してください。"); valid=false; }
       const r = Number(p.reduction_rate);
-      if(!(Number.isFinite(r)&&r>=1&&r<=50)){ setError("reduction_rate","削減率は10〜50%から選択してください。"); valid=false; }
+      if(!(Number.isFinite(r)&&r>=10&&r<=50)){ setError("reduction_rate","削減率は10%〜50%から選択してください。"); valid=false; }
       return valid;
     }
     function showError(prefix, detail){
@@ -108,11 +112,10 @@
       msg.textContent = `${prefix}${detail ? "（" + detail + "）" : ""}`;
     }
 
-    // ====== 起動フロー（チカチカ対策） ======
+    // LIFF初期化（リダイレクト最小化）
     (async function boot(){
       try {
         await liff.init({ liffId: LIFF_ID });
-
         const inClient = liff.isInClient();
 
         if (!inClient && location.origin !== CANON_URL) {
@@ -135,16 +138,13 @@
       }
     })();
 
-    // ====== 送信 ======
+    // 送信
     let submitting = false;
-    form.addEventListener("submit", onSubmit);
-
-    async function onSubmit(ev){
+    form.addEventListener("submit", async (ev)=>{
       ev.preventDefault();
       if (submitting) return;
       msg.textContent = "";
 
-      // チェックボックス配列化
       const targets = Array.from(document.querySelectorAll('input[name="targets"]:checked')).map(el=>el.value);
       const payload = {
         targets,
@@ -152,7 +152,6 @@
         hourly_wage: document.getElementById("hourly_wage").value,
         reduction_rate: document.getElementById("reduction_rate").value
       };
-
       if(!validate(payload)) return;
 
       submitting = true;
@@ -160,7 +159,7 @@
       btn.textContent = "送信中…";
 
       try{
-        const prof = await liff.getProfile(); // userId 取得
+        const prof = await liff.getProfile();
         const meta = {
           userId: prof.userId,
           displayName: prof.displayName || "",
@@ -192,7 +191,7 @@
         btn.disabled = false;
         btn.textContent = "診断してLINEに結果を受け取る";
       }
-    }
+    });
   })();
   </script>
 </body>

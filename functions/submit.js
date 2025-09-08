@@ -1,10 +1,10 @@
 // functions/submit.js
 export async function onRequestPost(context) {
   try {
-    // ★最新のGAS Webアプリ（/exec）に必ず差し替えてください
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyBZ1e3s3NGKY2Gsk_C_Y1Z70J-upd_7BGCa_qyPpyqWeUMFfbx2lDRWgkOIcWtCZU/exec";
+    // ← 最新のGAS Webアプリ（/exec）URLに差し替え
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyyKFdF8aP7U8Hq-hANkbq9lX4AMyIi0fBQApwscPl-qcXQZ0I-kYSxGhqhtOuybv33/exec";
 
-    const body = await context.request.text();
+    const body = await context.request.text(); // ヘッダ付けずにそのまま転送（プリフライト回避）
     const res  = await fetch(GAS_URL, { method: "POST", body });
 
     const txt  = await res.text(); // GASはJSON返却想定
