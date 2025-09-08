@@ -25,19 +25,34 @@
     .error-msg{color:#ef4444;font-size:13px;margin:4px 0 0}
 
     /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
-    .checklist{
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    margin:10px 0 24px; /* ← margin-bottom を大きめに */
-  }
-  .checklist-row{display:flex;gap:12px;flex-wrap:wrap}
-  .checklist label{
-    display:inline-flex;align-items:center;gap:8px;padding:8px 12px;
-    border:1px solid #d1d5db;border-radius:10px;background:#fff;cursor:pointer;
-  }
-  .checklist input{transform:scale(1.05)}
-  .nowrap{white-space:nowrap}
+    /* ▼複数選択チェックボックス（横+縦のレイアウト＆コンパクト） */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;               /* ← 選択肢同士の間を少し狭く（以前は10〜12px） */
+  margin-top: 4px;        /* ← 質問文との間を半分くらいに（以前は8〜10px） */
+  margin-bottom: 24px;    /* ← 勤怠管理と次の質問の行間はそのまま広めに */
+}
+.checklist-row {
+  display: flex;
+  gap: 8px;               /* ← 横並びの間隔も少し詰める（以前は12px） */
+  flex-wrap: wrap;
+}
+.checklist label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;      /* ← 内側も少し詰める */
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fff;
+  width: fit-content;
+  max-width: 100%;
+}
+.checklist input { transform: scale(1.05); }
+.nowrap { white-space: nowrap; }
+
   </style>
 </head>
 <body>
